@@ -287,6 +287,7 @@ function drawBoard() {
 
 // global keyboard events
 Crafty.bind("KeyDown", function (e) {
+  if (DEBUG){console.log(e.key);}
   if (stopped) {
     if (e.key == Crafty.keys.SPACE) {
       stopped = false;
@@ -308,10 +309,14 @@ Crafty.scene("main", function () {
     events: {
       KeyUp: function (e) {
         if (
-          e.key == Crafty.keys.LEFT_ARROW ||
+          e.key == Crafty.keys.LEFT_ARROW || 
           e.key == Crafty.keys.RIGHT_ARROW ||
           e.key == Crafty.keys.UP_ARROW ||
-          e.key == Crafty.keys.DOWN_ARROW
+          e.key == Crafty.keys.DOWN_ARROW ||
+          e.key == Crafty.keys.S || 
+          e.key == Crafty.keys.F || 
+          e.key == Crafty.keys.E || 
+          e.key == Crafty.keys.D 
         ) {
           this.arrowKeysPressed--;
         }
@@ -321,7 +326,11 @@ Crafty.scene("main", function () {
           e.key == Crafty.keys.LEFT_ARROW ||
           e.key == Crafty.keys.RIGHT_ARROW ||
           e.key == Crafty.keys.UP_ARROW ||
-          e.key == Crafty.keys.DOWN_ARROW
+          e.key == Crafty.keys.DOWN_ARROW ||
+          e.key == Crafty.keys.S || 
+          e.key == Crafty.keys.F || 
+          e.key == Crafty.keys.E || 
+          e.key == Crafty.keys.D
         ) {
           this.arrowKeysPressed++;
         }
@@ -331,15 +340,19 @@ Crafty.scene("main", function () {
           this.moveRequest.right = this.moveRequest.left = this.moveRequest.down = this.moveRequest.up = false;
           switch (e.key) {
             case Crafty.keys.LEFT_ARROW:
+            case Crafty.keys.S:
               this.moveRequest.left = true;
               break;
             case Crafty.keys.RIGHT_ARROW:
+            case Crafty.keys.F:
               this.moveRequest.right = true;
               break;
             case Crafty.keys.UP_ARROW:
+            case Crafty.keys.E:
               this.moveRequest.up = true;
               break;
             case Crafty.keys.DOWN_ARROW:
+            case Crafty.keys.D:
               this.moveRequest.down = true;
               break;
           }
