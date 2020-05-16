@@ -1,5 +1,11 @@
 // dentidoo, the dentist's favourite game !
 
+// TODO:
+// - shortcuts from one cell to another
+// - spring over one cel
+// - tunnels/roofs where the teeth are hidden
+// - dentist symbol: heals all caries at once
+
 // ***********************************************
 // global variables
 // ***********************************************
@@ -31,10 +37,25 @@ var CANVAS_HEIGTH =
 var SCORE_INCREMENT = 20;
 var SCORE_NOMINAL_TIME = 20 * 1000; // time to get SCORE_INCREMENT
 
+const TOOTH_STATUS = {
+  NORMAL: "normal",
+  BROKEN: "broken",
+  SAVED: "saved",
+};
+
+const MOVE_REQUEST = {
+  NONE: "none",
+  LEFT: "left",
+  RIGHT: "right",
+  UP: "up",
+  DOWN: "down",
+};
+
 var level = 0;
 var score = 0;
 var numMoves = 0;
 var arrowKeysPressed = 0;
+var moveRequest = MOVE_REQUEST.NONE;
 var stopped = false;
 var entities = Create2DArray(GRID_DIMENSION);
 var scoreText;
@@ -123,8 +144,6 @@ Crafty.sprite(
     wall: [7, 0],
   }
 );
-
-
 
 // ***********************************************
 // functions
@@ -237,6 +256,12 @@ function drawBoard() {
         case BOARD_WALL:
           entities[i][j] = Crafty.e("2D, DOM, wall");
           break;
+        case BOARD_START:
+          // put a grey ball
+          entities[i][j] = Crafty.e("2D, DOM, ball_grey");
+          // and place one tooth in front of it
+          Crafty.e("2D, DOM, tooth, tooth_0").place(i, j);
+          break;
         case BOARD_END:
           entities[i][j] = Crafty.e("2D, DOM, ball_green"); // initially the exit is unlocked
           break;
@@ -259,26 +284,168 @@ function drawBoard() {
       });
     }
   }
-  // quick patch
-  for (let j = 0; j < GRID_DIMENSION; j++) {
-    // j = y
-    for (let i = 0; i < GRID_DIMENSION; i++) {
-      // i = x
-      element = levels[level]["grid"][j].charAt(i);
-      switch (element) {
-        case BOARD_START:
-          // put a grey ball
-          entities[i][j] = Crafty.e("2D, DOM, ball_grey");
-          // and place one tooth in front of it
-          Crafty.e("2D, DOM, tooth, tooth_0").place(i, j);
-          break;
+}
+
+// move one tooth
+function moveOneTooth(aToothEntity, aMoveRequest) {
+  let newTooth_x = aToothEntity.tooth_x;
+  let newTooth_y = aToothEntity.tooth_y;
+  switch (aMoveRequest) {
+    case MOVE_REQUEST.LEFT:
+      if (newTooth_x > 0) {
+        newTooth_x--;
       }
-      entities[i][j].attr({
-        x: pos_x(i),
-        y: pos_y(j),
-      });
+      break;
+    case MOVE_REQUEST.RIGHT:
+      if (newTooth_x < GRID_DIMENSION - 1) {
+        newTooth_x++;
+      }
+      break;
+    case MOVE_REQUEST.UP:
+      if (newTooth_y > 0) {
+        newTooth_y--;
+      }
+      break;
+    case MOVE_REQUEST.DOWN:
+      if (newTooth_y < GRID_DIMENSION - 1) {
+        newTooth_y++;
+      }
+      break;
+  }
+  // validate new position only if we don't enter a wall or another tooth
+  destination = entities[newTooth_x][newTooth_y];
+  if (!destination.has("wall") && isPositionFree(newTooth_x, newTooth_y)) {
+    aToothEntity.place(newTooth_x, newTooth_y);
+
+    // check hit symbols
+    if (
+      destination.has("candy") ||
+      destination.has("chocolate") ||
+      destination.has("lollipop")
+    ) {
+      // make symbol disappear, replaced by empty cell
+      if (destination.has("candy")) {
+        destination.toggleComponent("candy,    ball_grey");
+      }
+      if (destination.has("chocolate")) {
+        destination.toggleComponent("chocolate,ball_grey");
+      }
+      if (destination.has("lollipop")) {
+        destination.toggleComponent("lollipop, ball_grey");
+      }
+      // one more carie
+      if (aToothEntity.has("tooth_0")) {
+        aToothEntity.toggleComponent("tooth_0,tooth_1");
+      } else if (aToothEntity.has("tooth_1")) {
+        aToothEntity.toggleComponent("tooth_1,tooth_2");
+      } else if (aToothEntity.has("tooth_2")) {
+        aToothEntity.toggleComponent("tooth_2,tooth_3");
+      } else if (aToothEntity.has("tooth_3")) {
+        aToothEntity.toggleComponent("tooth_3,tooth_4");
+      } else if (aToothEntity.has("tooth_4")) {
+        // this tooth is broken
+        aToothEntity.setStatus(TOOTH_STATUS.BROKEN);
+      }
+    } else if (destination.has("toothbrush")) {
+      // make symbol disappear, replaced by empty cell
+      destination.toggleComponent("toothbrush,ball_grey");
+      // remove one carie
+      if (aToothEntity.has("tooth_1")) {
+        aToothEntity.toggleComponent("tooth_1,tooth_0");
+      } else if (aToothEntity.has("tooth_2")) {
+        aToothEntity.toggleComponent("tooth_2,tooth_1");
+      } else if (aToothEntity.has("tooth_3")) {
+        aToothEntity.toggleComponent("tooth_3,tooth_2");
+      } else if (aToothEntity.has("tooth_4")) {
+        aToothEntity.toggleComponent("tooth_4,tooth_3");
+      }
+    }
+    // set status to Saved only if the tooth is on a green exit ball, and not broken
+    if (aToothEntity.getStatus() != TOOTH_STATUS.BROKEN) {
+      if (destination.has("ball_green")) {
+        aToothEntity.setStatus(TOOTH_STATUS.SAVED);
+      } else {
+        aToothEntity.setStatus(TOOTH_STATUS.NORMAL);
+      }
     }
   }
+}
+
+// return array of tooth entities, ordered according to one direction
+function orderedTeeth(aMoveRequest) {
+  var teethEntities = Crafty("tooth").get();
+  teethEntities.sort(function(a,b){
+    var result;
+    switch (aMoveRequest) {
+      case MOVE_REQUEST.LEFT:
+        result = a.tooth_x - b.tooth_x;
+        break;
+      case MOVE_REQUEST.RIGHT:
+        result = b.tooth_x - a.tooth_x;
+        break;
+      case MOVE_REQUEST.UP:
+        result = a.tooth_y - b.tooth_y;
+        break;
+      case MOVE_REQUEST.DOWN:
+        result = b.tooth_y - a.tooth_y;
+        break;
+    }
+    return result;
+  });
+
+  return teethEntities;
+}
+
+// move all teeth according to the move request
+function moveAllTeeth(aMoveRequest) {
+  // order the teeth according to the move direction: we move first
+  // the tooth which is further away in that direction to free up the
+  // trail behind it.
+  orderedTeeth(aMoveRequest).forEach((toothEntity) =>
+    moveOneTooth(toothEntity, aMoveRequest)
+  );
+}
+
+// check if position x, y is free, i.e. not ocupied by one tooth
+function isPositionFree(ax,ay) {
+  var isFree = true;
+  var teethEntities = Crafty("tooth").get();
+  for (i = 0; i < teethEntities.length; i++) {
+    if ((teethEntities[i].tooth_x == ax) && (teethEntities[i].tooth_y == ay)) {
+      isFree = false;
+      break;
+    }
+  }
+  return isFree;
+}
+
+function isOneToothBroken() {
+  var numBroken = 0;
+  var teethEntities = Crafty("tooth").get();
+  for (i = 0; i < teethEntities.length; i++) {
+    if (teethEntities[i].getStatus() == TOOTH_STATUS.BROKEN) {
+      numBroken++;
+      break;
+    }
+  }
+  return numBroken > 0;
+}
+
+function isAllTeethSaved() {
+  var numSaved = 0;
+  var teethEntities = Crafty("tooth").get();
+  for (i = 0; i < teethEntities.length; i++) {
+    if (teethEntities[i].getStatus() == TOOTH_STATUS.SAVED) {
+      numSaved++;
+    }
+  }
+  return numSaved == teethEntities.length;
+}
+
+function isAllTeethClean() {
+  var numClean = Crafty("tooth_0").length;
+  var numTeeth = Crafty("tooth").length;
+  return numClean == numTeeth;
 }
 
 // ***********************************************
@@ -286,212 +453,147 @@ function drawBoard() {
 // ***********************************************
 
 // global keyboard events
+// one-direction control (one move at a time, needs key up before next movee,
+// and no diagonal move allowed
+
 Crafty.bind("KeyDown", function (e) {
-  if (DEBUG){console.log(e.key);}
-  if (stopped) {
-    if (e.key == Crafty.keys.SPACE) {
-      stopped = false;
-      Crafty.scene("main"); // restart the scene
+  if (DEBUG) {
+    console.log(e.key);
+  }
+  if (stopped && e.key == Crafty.keys.SPACE) {
+    stopped = false;
+    Crafty.scene("main"); // restart the scene
+  } else {
+    if (
+      e.key == Crafty.keys.LEFT_ARROW ||
+      e.key == Crafty.keys.RIGHT_ARROW ||
+      e.key == Crafty.keys.UP_ARROW ||
+      e.key == Crafty.keys.DOWN_ARROW ||
+      e.key == Crafty.keys.S ||
+      e.key == Crafty.keys.F ||
+      e.key == Crafty.keys.E ||
+      e.key == Crafty.keys.D
+    ) {
+      arrowKeysPressed++;
+    }
+    // forbid diagonal moves with two arrows pressed
+    if (arrowKeysPressed == 1) {
+      // By default no move request
+      moveRequest = MOVE_REQUEST.NONE;
+      switch (e.key) {
+        case Crafty.keys.LEFT_ARROW:
+        case Crafty.keys.S:
+          moveRequest = MOVE_REQUEST.LEFT;
+          break;
+        case Crafty.keys.RIGHT_ARROW:
+        case Crafty.keys.F:
+          moveRequest = MOVE_REQUEST.RIGHT;
+          break;
+        case Crafty.keys.UP_ARROW:
+        case Crafty.keys.E:
+          moveRequest = MOVE_REQUEST.UP;
+          break;
+        case Crafty.keys.DOWN_ARROW:
+        case Crafty.keys.D:
+          moveRequest = MOVE_REQUEST.DOWN;
+          break;
+      }
+    }
+  }
+});
+
+Crafty.bind("KeyUp", function (e) {
+  if (
+    e.key == Crafty.keys.LEFT_ARROW ||
+    e.key == Crafty.keys.RIGHT_ARROW ||
+    e.key == Crafty.keys.UP_ARROW ||
+    e.key == Crafty.keys.DOWN_ARROW ||
+    e.key == Crafty.keys.S ||
+    e.key == Crafty.keys.F ||
+    e.key == Crafty.keys.E ||
+    e.key == Crafty.keys.D
+  ) {
+    arrowKeysPressed--;
+  }
+});
+
+Crafty.bind("UpdateFrame", function () {
+  // If there is a move request: move all teeth
+  // Then check:
+  // - is one tooth game over? if yes replay this level
+  // - are all teeth saved?    if yes go to next level
+  if (!stopped) {
+    if (moveRequest != MOVE_REQUEST.NONE) {
+      numMoves++;
+      moveAllTeeth(moveRequest);
+      // consume the move request
+      moveRequest = MOVE_REQUEST.NONE;
+      if (isOneToothBroken()) {
+        // game over
+        levelNameText.text("!! GAME OVER (press space)");
+        levelNameText.textColor("red");
+        stopped = true;
+        // score penalty
+        score -= SCORE_INCREMENT;
+      } else if (isAllTeethSaved()) {
+        // User wins!
+        levelNameText.text("Yeah!! (press space)");
+        levelNameText.textColor("green");
+        stopped = true;
+        // increase score
+        endTime = new Date().getTime(); // milliseconds
+        score += Math.round(
+          (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
+        );
+        if (level < levels.length - 1) {
+          level++;
+        } else {
+          level = 0; // restart from first level
+        }
+      } else if (isAllTeethClean()) {
+        // turn the exit(s) green, if they aren't yet
+        if (Crafty("ball_red").length != 0) {
+          Crafty("ball_red").each(function () {
+            this.toggleComponent("ball_red,ball_green");
+          });
+        }
+      } else {
+        // turn the exit(s) red, if they aren't yet
+        if (Crafty("ball_green").length != 0) {
+          Crafty("ball_green").each(function () {
+            this.toggleComponent("ball_green,ball_red");
+          });
+        }
+      }
     }
   }
 });
 
 Crafty.scene("main", function () {
-  /////////////////////////// get start time
   startTime = new Date().getTime();
-
-  // Component for one-direction control (one move at a time, needs key before next movee,
-  // and no diagonal move allowed
-  Crafty.c("OneDirection", {
-    required: "Keyboard",
-    arrowKeysPressed: 0,
-    moveRequest: { left: false, right: false, up: false, down: false },
-    events: {
-      KeyUp: function (e) {
-        if (
-          e.key == Crafty.keys.LEFT_ARROW || 
-          e.key == Crafty.keys.RIGHT_ARROW ||
-          e.key == Crafty.keys.UP_ARROW ||
-          e.key == Crafty.keys.DOWN_ARROW ||
-          e.key == Crafty.keys.S || 
-          e.key == Crafty.keys.F || 
-          e.key == Crafty.keys.E || 
-          e.key == Crafty.keys.D 
-        ) {
-          this.arrowKeysPressed--;
-        }
-      },
-      KeyDown: function (e) {
-        if (
-          e.key == Crafty.keys.LEFT_ARROW ||
-          e.key == Crafty.keys.RIGHT_ARROW ||
-          e.key == Crafty.keys.UP_ARROW ||
-          e.key == Crafty.keys.DOWN_ARROW ||
-          e.key == Crafty.keys.S || 
-          e.key == Crafty.keys.F || 
-          e.key == Crafty.keys.E || 
-          e.key == Crafty.keys.D
-        ) {
-          this.arrowKeysPressed++;
-        }
-        // forbid diagonal moves with two arrows pressed
-        if (this.arrowKeysPressed == 1) {
-          // Default movement booleans to false
-          this.moveRequest.right = this.moveRequest.left = this.moveRequest.down = this.moveRequest.up = false;
-          switch (e.key) {
-            case Crafty.keys.LEFT_ARROW:
-            case Crafty.keys.S:
-              this.moveRequest.left = true;
-              break;
-            case Crafty.keys.RIGHT_ARROW:
-            case Crafty.keys.F:
-              this.moveRequest.right = true;
-              break;
-            case Crafty.keys.UP_ARROW:
-            case Crafty.keys.E:
-              this.moveRequest.up = true;
-              break;
-            case Crafty.keys.DOWN_ARROW:
-            case Crafty.keys.D:
-              this.moveRequest.down = true;
-              break;
-          }
-        }
-      },
-    },
-  });
 
   // Component for one tooth
   Crafty.c("tooth", {
-    required: "2D, DOM, OneDirection",
+    required: "2D, DOM",
     init: function () {
       this.w = 50;
       this.h = 50;
+      this.status = TOOTH_STATUS.NORMAL;
     },
     place: function (ax, ay) {
       this.tooth_x = ax;
       this.tooth_y = ay;
       this.x = pos_x(ax);
       this.y = pos_y(ay);
+      this.z = 1; // in front of symbols which are at Z=0
       return this;
     },
-    events: {
-      UpdateFrame: function () {
-        if (!stopped) {
-          let newTooth_x = this.tooth_x;
-          let newTooth_y = this.tooth_y;
-          if (
-            this.moveRequest.left ||
-            this.moveRequest.right ||
-            this.moveRequest.up ||
-            this.moveRequest.down
-          ) {
-            numMoves++;
-            if (this.moveRequest.left) {
-              if (this.tooth_x > 0) {
-                newTooth_x--;
-              }
-            } else if (this.moveRequest.right) {
-              if (this.tooth_x < GRID_DIMENSION - 1) {
-                newTooth_x++;
-              }
-            } else if (this.moveRequest.up) {
-              if (this.tooth_y > 0) {
-                newTooth_y--;
-              }
-            } else if (this.moveRequest.down) {
-              if (this.tooth_y < GRID_DIMENSION - 1) {
-                newTooth_y++;
-              }
-            }
-            // consume the move request
-            this.moveRequest.right = this.moveRequest.left = this.moveRequest.down = this.moveRequest.up = false;
-            // validate new position only if we don't enter a wall
-            if (!entities[newTooth_x][newTooth_y].has("wall")) {
-              this.place(newTooth_x, newTooth_y);
-
-              // check hit symbols
-              if (
-                entities[this.tooth_x][this.tooth_y].has("candy") ||
-                entities[this.tooth_x][this.tooth_y].has("chocolate") ||
-                entities[this.tooth_x][this.tooth_y].has("lollipop")
-              ) {
-                // make symbol disappear, replaced by empty cell
-                if (entities[this.tooth_x][this.tooth_y].has("candy")) {
-                  entities[this.tooth_x][this.tooth_y].toggleComponent(
-                    "candy,    ball_grey"
-                  );
-                }
-                if (entities[this.tooth_x][this.tooth_y].has("chocolate")) {
-                  entities[this.tooth_x][this.tooth_y].toggleComponent(
-                    "chocolate,ball_grey"
-                  );
-                }
-                if (entities[this.tooth_x][this.tooth_y].has("lollipop")) {
-                  entities[this.tooth_x][this.tooth_y].toggleComponent(
-                    "lollipop, ball_grey"
-                  );
-                }
-                // one more carie
-                if (this.has("tooth_0")) {
-                  this.toggleComponent("tooth_0,tooth_1");
-                  // change end symbol to red
-                  Crafty("ball_green").toggleComponent("ball_green,ball_red");
-                } else if (this.has("tooth_1")) {
-                  this.toggleComponent("tooth_1,tooth_2");
-                } else if (this.has("tooth_2")) {
-                  this.toggleComponent("tooth_2,tooth_3");
-                } else if (this.has("tooth_3")) {
-                  this.toggleComponent("tooth_3,tooth_4");
-                } else if (this.has("tooth_4")) {
-                  // game over
-                  levelNameText.text("!! GAME OVER (press space)");
-                  levelNameText.textColor("red");
-                  stopped = true;
-                  // score penalty
-                  score -= SCORE_INCREMENT;
-                }
-              } else if (
-                entities[this.tooth_x][this.tooth_y].has("toothbrush")
-              ) {
-                // make symbol disappear, replaced by empty cell
-                entities[this.tooth_x][this.tooth_y].toggleComponent(
-                  "toothbrush,ball_grey"
-                );
-                // remove one carie
-                if (this.has("tooth_1")) {
-                  this.toggleComponent("tooth_1,tooth_0");
-                  // change end symbol to green
-                  Crafty("ball_red").toggleComponent("ball_red,ball_green");
-                } else if (this.has("tooth_2")) {
-                  this.toggleComponent("tooth_2,tooth_1");
-                } else if (this.has("tooth_3")) {
-                  this.toggleComponent("tooth_3,tooth_2");
-                } else if (this.has("tooth_4")) {
-                  this.toggleComponent("tooth_4,tooth_3");
-                }
-              } else if (
-                entities[this.tooth_x][this.tooth_y].has("ball_green")
-              ) {
-                // User wins!
-                levelNameText.text("Yeah!! (press space)");
-                levelNameText.textColor("green");
-                stopped = true;
-                // increase score
-                endTime = new Date().getTime(); // milliseconds
-                score += Math.round(
-                  (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
-                );
-                if (level < levels.length - 1) {
-                  level++;
-                } else {
-                  level = 0; // restart from first level
-                }
-              }
-            }
-          }
-        }
-      },
+    setStatus: function (value) {
+      this.status = value;
+      return this;
+    },
+    getStatus: function () {
+      return this.status;
     },
   });
 

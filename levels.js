@@ -9,23 +9,21 @@
 // T = toothbrush
 
 var levels = [
-/*
   {
     name: "It takes two to tango",
     grid: [
-      ".........E",
-      "..........",
-      "..h.......",
-      "..S.......",
-      "..........",
-      "....T.....",
-      "..........",
-      "c......l..",
-      ".c........",
-      "S.c.......",
+      "lll.....EE",
+      "llll...lll",
+      "lllll....l",
+      "lllllll..l",
+      "lllll....l",
+      "ll..T...ll",
+      "l....lllll",
+      "l........l",
+      "Tlll....ll",
+      "SSl....lll",
     ],
   },
-  */
   {
     name: "Un bon début",
     grid: [
