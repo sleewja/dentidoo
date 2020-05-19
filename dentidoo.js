@@ -118,8 +118,8 @@ var assetsObj = {
 Crafty.sprite(
   50, // tile
   50, // tileh
-  //"tooth.png",
-  "https://drive.google.com/uc?export=download&id=1RvyS8xVJY5KdsK0EtVYBDWxmXejO2XpT",
+  "tooth.png",
+  //"https://drive.google.com/uc?export=download&id=1RvyS8xVJY5KdsK0EtVYBDWxmXejO2XpT",
   {
     tooth_0: [0, 0],
     tooth_1: [1, 0],
@@ -131,8 +131,8 @@ Crafty.sprite(
 Crafty.sprite(
   50, // tile
   50, // tileh
-  // symbols.png
-  "https://drive.google.com/uc?export=download&id=1JWZsGg42efWXjv4ZLhScKYxb6vAEwIiY",
+  "symbols.png",
+  //"https://drive.google.com/uc?export=download&id=1JWZsGg42efWXjv4ZLhScKYxb6vAEwIiY",
   {
     ball_grey: [0, 0], // empty board cell
     ball_green: [1, 0], // exit unlocked
@@ -217,7 +217,8 @@ function drawHeader() {
 function drawFooter() {
   var logo = Crafty.e("2D, DOM, Image")
     .image(
-      "https://drive.google.com/uc?export=download&id=1AbQ2KQR0Q-JLb4wcFMsKuiVR-Y2Poom2"
+      "logo.png"
+      //"https://drive.google.com/uc?export=download&id=1AbQ2KQR0Q-JLb4wcFMsKuiVR-Y2Poom2"
     )
     .attr({ x: CANVAS_WIDTH - 175, y: CANVAS_HEIGTH - 50 });
 
@@ -530,7 +531,7 @@ Crafty.bind("UpdateFrame", function () {
       moveRequest = MOVE_REQUEST.NONE;
       if (isOneToothBroken()) {
         // game over
-        levelNameText.text("!! GAME OVER (press space)");
+        levelNameText.text("!! Try again (press space)");
         levelNameText.textColor("red");
         stopped = true;
         // score penalty
