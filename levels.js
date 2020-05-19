@@ -10,21 +10,6 @@
 
 var levels = [
   {
-    name: "It takes two to tango",
-    grid: [
-      "lll.....EE",
-      "llll...lll",
-      "lllll....l",
-      "lllllll..l",
-      "lllll....l",
-      "ll..T...ll",
-      "l....lllll",
-      "l........l",
-      "Tlll....ll",
-      "SSl....lll",
-    ],
-  },
-  {
     name: "Un bon début",
     grid: [
       ".........E",
@@ -172,6 +157,51 @@ var levels = [
       "T##Tccc#h.",
       "cTcc##h##.",
       "#####T....",
+    ],
+  },
+  {
+    name: "It takes two to tango",
+    grid: [
+      "lll.....EE",
+      "llll...lll",
+      "lllll....l",
+      "lllllll..l",
+      "lllll....l",
+      "ll..T...ll",
+      "l....lllll",
+      "l........l",
+      "Tlll....ll",
+      "SSl....lll",
+    ],
+  },
+  {
+    name: "Tom & Jerry",
+    grid: [
+      "S.........",
+      "..........",
+      ".......E..",
+      "..........",
+      "....##....",
+      "....##....",
+      "..........",
+      "..E.......",
+      "..........",
+      ".........S",
+    ],
+  },
+  {
+    name: "Romeo & Juliet",
+    grid: [
+      ".......lll",
+      "........ll",
+      "..#......l",
+      "T###......",
+      "#####hh...",
+      ".....c....",
+      "EETc#Sc...",
+      "######....",
+      "#.#.#...hh",
+      "#.#.#...hS",
     ],
   },
 ];
