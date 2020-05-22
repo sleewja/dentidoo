@@ -67,59 +67,10 @@ var levelNameText;
 // ***********************************************
 Crafty.init(CANVAS_WIDTH, CANVAS_HEIGTH, document.getElementById("dentidoo"));
 
-// For some reason loading the sprites with Crafty.load with external url does not work...
-/*
-var assetsObj = {
-  sprites: {
-    //"tooth.png":{
-    "https://drive.google.comuc?export=download&id=1RvyS8xVJY5KdsK0EtVYBDWxmXejO2XpT": {
-      tile: 50,
-      tileh: 50,
-      map: {
-        tooth_0: [0, 0],
-        tooth_1: [1, 0],
-        tooth_2: [2, 0],
-        tooth_3: [3, 0],
-        tooth_4: [4, 0],
-      },
-    },
-    //"symbols.png":{
-    "https://drive.google.com/uc?export=download&id=1JWZsGg42efWXjv4ZLhScKYxb6vAEwIiY":{
-      tile: 50,
-      tileh: 50,
-      map: {
-        ball_grey: [0, 0], // empty board cell
-        ball_green: [1, 0], // exit unlocked
-        ball_red: [2, 0], // exit locked
-        chocolate: [3, 0],
-        candy: [4, 0],
-        lollipop: [5, 0],
-        toothbrush: [6, 0],
-        wall: [7, 0],
-      },
-    },
-  },
-};
-
-/*Crafty.load(assetsObj,
-  function () {
-      Crafty.scene("main"); // start the main scene when loaded
-  },
-  function (e) { // progress
-    console.log(e);
-  },
-  function(e) { // error
-    console.log(e);
-  });
-*/
-
-// loading with Crafty.sprite works well though
-
 Crafty.sprite(
   50, // tile
   50, // tileh
   "tooth.png",
-  //"https://drive.google.com/uc?export=download&id=1RvyS8xVJY5KdsK0EtVYBDWxmXejO2XpT",
   {
     tooth_0: [0, 0],
     tooth_1: [1, 0],
@@ -132,7 +83,6 @@ Crafty.sprite(
   50, // tile
   50, // tileh
   "symbols.png",
-  //"https://drive.google.com/uc?export=download&id=1JWZsGg42efWXjv4ZLhScKYxb6vAEwIiY",
   {
     ball_grey: [0, 0], // empty board cell
     ball_green: [1, 0], // exit unlocked
@@ -218,7 +168,6 @@ function drawFooter() {
   var logo = Crafty.e("2D, DOM, Image")
     .image(
       "logo.png"
-      //"https://drive.google.com/uc?export=download&id=1AbQ2KQR0Q-JLb4wcFMsKuiVR-Y2Poom2"
     )
     .attr({ x: CANVAS_WIDTH - 175, y: CANVAS_HEIGTH - 50 });
 
