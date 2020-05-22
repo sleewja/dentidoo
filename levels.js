@@ -1,6 +1,8 @@
 // grid entities:
 // . = empty cell
 // # = wall
+// £ = spring
+// * = cloud
 // S = start
 // E = end
 // c = candy
@@ -202,6 +204,36 @@ var levels = [
       "######....",
       "#.#.#...hh",
       "#.#.#...hS",
+    ],
+  },
+  {
+    name: "Météo belge",
+    grid: [
+      "..*.....*E",
+      ".l..h.h...",
+      "lhh.hhhh..",
+      "h**h**Th..",
+      ".h***c**h.",
+      "..h*h***hh",
+      "...hhh**Th",
+      "..*..h**h.",
+      ".*....hh..",
+      "S.**...h..",
+    ],
+  },
+  {
+    name: "Roger Rabbit",
+    grid: [
+      "TTTTTTTTTE",
+      "..........",
+      ".ccccccc..",
+      ".c£££££c..",
+      ".c£...£c..",
+      ".c£.S.£c..",
+      ".c£...£c..",
+      ".c£££££c..",
+      ".ccccccc..",
+      "..........",
     ],
   },
 ];
