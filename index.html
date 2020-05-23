@@ -1,11 +1,123 @@
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
+    <title>dentidoo</title>
+    <link rel="icon" type="image/png" href="favicon.ico" />
   </head>
   <body>
     <div id="dentidoo"></div>
-    <script type="text/javascript" src="crafty-min.js"> comment="From https://github.com/craftyjs/Crafty/releases/download/0.9.0/crafty-min.js"</script>
+    <script type="text/javascript" src="crafty-min.js">
+      comment="From https://github.com/craftyjs/Crafty/releases/download/0.9.0/crafty-min.js"
+    </script>
     <script type="text/javascript" src="levels.js" charset="utf-8"></script>
+    <script type="text/javascript">
+      levels = standardLevels; // by default take standard levels
+    </script>
+
     <script type="text/javascript" src="dentidoo.js" charset="utf-8"></script>
+
+    <!-- Code insipred from https://stackoverflow.com/questions/7346563/loading-local-json-file  -->
+    <p></p>
+    <input
+      type="checkbox"
+      id="useCustomLevels"
+      onChange="onChangeCheckBox();"
+    />
+    <label for="useCustomLevels">Custom levels</label>
+    <input
+      type="file"
+      id="fileSelector"
+      accept=".json"
+      onChange="onChangeFileSelector();"
+    />
+
+    <script type="text/javascript">
+      function onChangeFileSelector() {
+        if (document.getElementById("useCustomLevels").checked) {
+          loadFile();
+        }
+      }
+
+      function onChangeCheckBox() {
+        if (document.getElementById("useCustomLevels").checked) {
+          loadFile();
+        } else {
+          // Restart game with standard levels
+          levels = standardLevels;
+          level = 0;
+          Crafty.scene("main");
+        }
+      }
+
+      // load custom or standard levels depending on checkbox state at init
+      // in Firefox, the checkbox state is preserved between sessions.
+      onChangeCheckBox(); 
+
+      function isValidCustomLevelsJSON(aCustomLevelsJSON) {
+        isValid = true;
+        if ("levels" in aCustomLevelsJSON) {
+          if (Array.isArray(aCustomLevelsJSON["levels"])) {
+            // each element of the array must contain "name" and "grid" keys
+            for (i = 0; i < aCustomLevelsJSON["levels"].length; i++) {
+              if (
+                "name" in aCustomLevelsJSON["levels"][i] &&
+                "grid" in aCustomLevelsJSON["levels"][i]
+              ) {
+                // so far so good
+              } else {
+                isValid = false;
+                break;
+              }
+            }
+          } else {
+            isValid = false;
+          }
+        } else {
+          isValid = false;
+        }
+        return isValid;
+      }
+
+      function loadFile() {
+        var input, file, fr;
+
+        if (typeof window.FileReader !== "function") {
+          alert("The file API isn't supported on this browser yet.");
+          return;
+        }
+        input = document.getElementById("fileSelector");
+        if (!input.files) {
+          alert(
+            "This browser doesn't seem to support the `files` property of file inputs."
+          );
+        } else if (!input.files[0]) {
+          alert("Please select a file first");
+        } else {
+          file = input.files[0];
+          fr = new FileReader();
+          fr.onload = onFileLoaded;
+          fr.readAsText(file);
+        }
+
+        function onFileLoaded(e) {
+          let lines = e.target.result;
+          try {
+            customLevelsJSON = JSON.parse(lines);
+
+            // Restart Crafty game with the custom levels, if valid levels
+            if (isValidCustomLevelsJSON(customLevelsJSON)) {
+              customLevels = customLevelsJSON["levels"];
+              levels = customLevels;
+              level = 0;
+              Crafty.scene("main");
+            } else {
+              alert("Invalid file");
+            }
+          } catch (e) {
+            alert(e);
+          }
+        }
+      }
+    </script>
   </body>
 </html>

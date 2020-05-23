@@ -465,7 +465,7 @@ Crafty.bind("KeyDown", function (e) {
   if (DEBUG) {
     console.log("Key=" + e.key);
   }
-  if (stopped && e.key == Crafty.keys.SPACE) {
+  if (stopped && e.key == Crafty.keys.R) {
     stopped = false;
     Crafty.scene("main"); // restart the scene
   } else {
@@ -535,14 +535,15 @@ Crafty.bind("UpdateFrame", function () {
       moveRequest = MOVE_REQUEST.NONE;
       if (isOneToothBroken()) {
         // game over
-        levelNameText.text("!! Try again (press space)");
+        levelNameText.text("!! Try again (press 'r')");
+        // 'r' instead of SPACE because SPACE submits inputs in forms on the same HTML page
         levelNameText.textColor("red");
         stopped = true;
         // score penalty
         score -= SCORE_INCREMENT;
       } else if (isAllTeethSaved()) {
         // User wins!
-        levelNameText.text("Yeah!! (press space)");
+        levelNameText.text("Yeah!! (press 'r')");
         levelNameText.textColor("green");
         stopped = true;
         // increase score
@@ -607,4 +608,3 @@ Crafty.scene("main", function () {
   drawFooter();
 });
 
-Crafty.scene("main");

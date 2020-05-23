@@ -10,7 +10,7 @@
 // l = lollypop
 // T = toothbrush
 
-var levels = [
+var standardLevels = [
   {
     name: "Un bon début",
     grid: [
