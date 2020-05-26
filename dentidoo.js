@@ -29,7 +29,7 @@ var GRID_SIZE = 50; // size in pixels
 var GRID_DIMENSION = 10; // 10 * 10
 var CANVAS_MARGIN = 0; // left, right, bottom margin
 var CANVAS_HEADER_HEIGHT = 60;
-var CANVAS_FOOTER_HEIGTH = 50; // for logo and debug info
+var CANVAS_FOOTER_HEIGTH = 160; // for logo and debug info and buttons
 var CANVAS_WIDTH = CANVAS_MARGIN + GRID_SIZE * GRID_DIMENSION + CANVAS_MARGIN;
 var CANVAS_HEIGTH =
   CANVAS_HEADER_HEIGHT +
@@ -100,6 +100,18 @@ Crafty.sprite(
     cloud: [1, 1],
   }
 );
+Crafty.sprite(
+  100, // tile
+  100, // tileh
+  "buttons.png",
+  {
+    button_left: [0,0],
+    button_up: [1,0],
+    button_down: [2,0],
+    button_right: [3,0],
+    button_restart: [4,0],
+  }
+)
 
 // ***********************************************
 // functions
@@ -175,14 +187,14 @@ function drawFooter() {
     .image("logo.png")
     .attr({
       x: CANVAS_WIDTH - 175,
-      y: CANVAS_HEIGTH - 50,
+      y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH,
     });
 
   if (DEBUG) {
     Crafty.e("2D, DOM, Text")
       .attr({
         x: 0,
-        y: CANVAS_HEIGTH - 15,
+        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 15,
       })
       .text(function () {
         return "numMoves:" + numMoves;
@@ -194,7 +206,7 @@ function drawFooter() {
     Crafty.e("2D, DOM, Text")
       .attr({
         x: 100,
-        y: CANVAS_HEIGTH - 15,
+        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 15,
       })
       .text(function () {
         return "arrowKeysPressed:" + arrowKeysPressed;
@@ -202,6 +214,37 @@ function drawFooter() {
       .dynamicTextGeneration(true)
       .textColor("#FF0000");
   }
+
+  // buttons
+  buttons_h = 100;
+  buttons_y = CANVAS_HEIGTH - buttons_h;
+  Crafty.e('2D, Canvas, Mouse, button_left')
+  .attr({x:0, y:buttons_y})
+  .bind('Click', function(MouseEvent){
+    moveRequest = MOVE_REQUEST.LEFT;
+  });
+  Crafty.e('2D, Canvas, Mouse, button_up')
+  .attr({x:buttons_h, y:buttons_y})
+  .bind('Click', function(MouseEvent){
+    moveRequest = MOVE_REQUEST.UP;
+  });
+  Crafty.e('2D, Canvas, Mouse, button_down')
+  .attr({x:buttons_h*2, y:buttons_y})
+  .bind('Click', function(MouseEvent){
+    moveRequest = MOVE_REQUEST.DOWN;
+  });
+  Crafty.e('2D, Canvas, Mouse, button_right')
+  .attr({x:buttons_h*3, y:buttons_y})
+  .bind('Click', function(MouseEvent){
+    moveRequest = MOVE_REQUEST.RIGHT;
+  });
+  Crafty.e('2D, Canvas, Mouse, button_restart')
+  .attr({x:buttons_h*4, y:buttons_y})
+  .bind('Click', function(MouseEvent){
+    // restart this level; (same as keyboard key R)
+    stopped = false;
+    Crafty.scene("main"); // restart the scene
+  });
 }
 
 // draw board (populate entities)
@@ -465,7 +508,7 @@ Crafty.bind("KeyDown", function (e) {
   if (DEBUG) {
     console.log("Key=" + e.key);
   }
-  if (stopped && e.key == Crafty.keys.R) {
+  if (e.key == Crafty.keys.R) {
     stopped = false;
     Crafty.scene("main"); // restart the scene
   } else {
