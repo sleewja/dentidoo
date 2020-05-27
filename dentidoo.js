@@ -105,13 +105,13 @@ Crafty.sprite(
   100, // tileh
   "buttons.png",
   {
-    button_left: [0,0],
-    button_up: [1,0],
-    button_down: [2,0],
-    button_right: [3,0],
-    button_restart: [4,0],
+    button_left: [0, 0],
+    button_up: [1, 0],
+    button_down: [2, 0],
+    button_right: [3, 0],
+    button_restart: [4, 0],
   }
-)
+);
 
 // ***********************************************
 // functions
@@ -218,33 +218,41 @@ function drawFooter() {
   // buttons
   buttons_h = 100;
   buttons_y = CANVAS_HEIGTH - buttons_h;
-  Crafty.e('2D, Canvas, Mouse, button_left')
-  .attr({x:0, y:buttons_y})
-  .bind('Click', function(MouseEvent){
-    moveRequest = MOVE_REQUEST.LEFT;
-  });
-  Crafty.e('2D, Canvas, Mouse, button_up')
-  .attr({x:buttons_h, y:buttons_y})
-  .bind('Click', function(MouseEvent){
-    moveRequest = MOVE_REQUEST.UP;
-  });
-  Crafty.e('2D, Canvas, Mouse, button_down')
-  .attr({x:buttons_h*2, y:buttons_y})
-  .bind('Click', function(MouseEvent){
-    moveRequest = MOVE_REQUEST.DOWN;
-  });
-  Crafty.e('2D, Canvas, Mouse, button_right')
-  .attr({x:buttons_h*3, y:buttons_y})
-  .bind('Click', function(MouseEvent){
-    moveRequest = MOVE_REQUEST.RIGHT;
-  });
-  Crafty.e('2D, Canvas, Mouse, button_restart')
-  .attr({x:buttons_h*4, y:buttons_y})
-  .bind('Click', function(MouseEvent){
-    // restart this level; (same as keyboard key R)
-    stopped = false;
-    Crafty.scene("main"); // restart the scene
-  });
+  Crafty.e("2D, Canvas, Mouse, button_left")
+    .attr({ x: 0, y: buttons_y })
+    .bind("Click", function (MouseEvent) {
+      if (!stopped) {
+        moveRequest = MOVE_REQUEST.LEFT;
+      }
+    });
+  Crafty.e("2D, Canvas, Mouse, button_up")
+    .attr({ x: buttons_h, y: buttons_y })
+    .bind("Click", function (MouseEvent) {
+      if (!stopped) {
+        moveRequest = MOVE_REQUEST.UP;
+      }
+    });
+  Crafty.e("2D, Canvas, Mouse, button_down")
+    .attr({ x: buttons_h * 2, y: buttons_y })
+    .bind("Click", function (MouseEvent) {
+      if (!stopped) {
+        moveRequest = MOVE_REQUEST.DOWN;
+      }
+    });
+  Crafty.e("2D, Canvas, Mouse, button_right")
+    .attr({ x: buttons_h * 3, y: buttons_y })
+    .bind("Click", function (MouseEvent) {
+      if (!stopped) {
+        moveRequest = MOVE_REQUEST.RIGHT;
+      }
+    });
+  Crafty.e("2D, Canvas, Mouse, button_restart")
+    .attr({ x: buttons_h * 4, y: buttons_y })
+    .bind("Click", function (MouseEvent) {
+      // restart this level; (same as keyboard key R)
+      stopped = false;
+      Crafty.scene("main"); // restart the scene
+    });
 }
 
 // draw board (populate entities)
@@ -525,7 +533,7 @@ Crafty.bind("KeyDown", function (e) {
       arrowKeysPressed++;
     }
     // forbid diagonal moves with two arrows pressed
-    if (arrowKeysPressed == 1) {
+    if (!stopped && arrowKeysPressed == 1) {
       // By default no move request
       moveRequest = MOVE_REQUEST.NONE;
       switch (e.key) {
@@ -570,49 +578,47 @@ Crafty.bind("UpdateFrame", function () {
   // Then check:
   // - is one tooth game over? if yes replay this level
   // - are all teeth saved?    if yes go to next level
-  if (!stopped) {
-    if (moveRequest != MOVE_REQUEST.NONE) {
-      numMoves++;
-      moveAllTeeth(moveRequest);
-      // consume the move request
-      moveRequest = MOVE_REQUEST.NONE;
-      if (isOneToothBroken()) {
-        // game over
-        levelNameText.text("!! Try again (press 'r')");
-        // 'r' instead of SPACE because SPACE submits inputs in forms on the same HTML page
-        levelNameText.textColor("red");
-        stopped = true;
-        // score penalty
-        score -= SCORE_INCREMENT;
-      } else if (isAllTeethSaved()) {
-        // User wins!
-        levelNameText.text("Yeah!! (press 'r')");
-        levelNameText.textColor("green");
-        stopped = true;
-        // increase score
-        endTime = new Date().getTime(); // milliseconds
-        score += Math.round(
-          (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
-        );
-        if (level < levels.length - 1) {
-          level++;
-        } else {
-          level = 0; // restart from first level
-        }
-      } else if (isAllTeethClean()) {
-        // turn the exit(s) green, if they aren't yet
-        if (Crafty("ball_red").length != 0) {
-          Crafty("ball_red").each(function () {
-            this.toggleComponent("ball_red,ball_green");
-          });
-        }
+  if (moveRequest != MOVE_REQUEST.NONE) {
+    numMoves++;
+    moveAllTeeth(moveRequest);
+    // consume the move request
+    moveRequest = MOVE_REQUEST.NONE;
+    if (isOneToothBroken()) {
+      // game over
+      levelNameText.text("!! Try again (press 'r')");
+      // 'r' instead of SPACE because SPACE submits inputs in forms on the same HTML page
+      levelNameText.textColor("red");
+      stopped = true;
+      // score penalty
+      score -= SCORE_INCREMENT;
+    } else if (isAllTeethSaved()) {
+      // User wins!
+      levelNameText.text("Yeah!! (press 'r')");
+      levelNameText.textColor("green");
+      stopped = true;
+      // increase score
+      endTime = new Date().getTime(); // milliseconds
+      score += Math.round(
+        (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
+      );
+      if (level < levels.length - 1) {
+        level++;
       } else {
-        // turn the exit(s) red, if they aren't yet
-        if (Crafty("ball_green").length != 0) {
-          Crafty("ball_green").each(function () {
-            this.toggleComponent("ball_green,ball_red");
-          });
-        }
+        level = 0; // restart from first level
+      }
+    } else if (isAllTeethClean()) {
+      // turn the exit(s) green, if they aren't yet
+      if (Crafty("ball_red").length != 0) {
+        Crafty("ball_red").each(function () {
+          this.toggleComponent("ball_red,ball_green");
+        });
+      }
+    } else {
+      // turn the exit(s) red, if they aren't yet
+      if (Crafty("ball_green").length != 0) {
+        Crafty("ball_green").each(function () {
+          this.toggleComponent("ball_green,ball_red");
+        });
       }
     }
   }
@@ -650,4 +656,3 @@ Crafty.scene("main", function () {
   drawBoard();
   drawFooter();
 });
-
