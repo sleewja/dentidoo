@@ -40,12 +40,6 @@ var CANVAS_HEIGTH =
 var SCORE_INCREMENT = 20;
 var SCORE_NOMINAL_TIME = 20 * 1000; // time to get SCORE_INCREMENT [milliseconds]
 
-const TOOTH_STATUS = {
-  NORMAL: "normal",
-  BROKEN: "broken",
-  SAVED: "saved",
-};
-
 const MOVE_REQUEST = {
   NONE: "none",
   LEFT: "left",
@@ -75,12 +69,12 @@ Crafty.sprite(
   50, // tileh
   "tooth.png",
   {
-    tooth_0: [0, 0],
+    tooth_0: [0, 0], // clean
     tooth_1: [1, 0],
     tooth_2: [2, 0],
     tooth_3: [3, 0],
     tooth_4: [4, 0],
-    tooth_5: [5, 0],
+    tooth_5: [5, 0], // broken
   }
 );
 Crafty.sprite(
@@ -126,14 +120,24 @@ function Create2DArray(rows) {
   return arr;
 }
 
-// convert x in grid to pixel position
-function pos_x(x) {
-  return CANVAS_MARGIN + GRID_SIZE * x;
+// convert i in grid to x pixel position
+function pos_x(i) {
+  return CANVAS_MARGIN + GRID_SIZE * i;
 }
 
-// convert y in grid to pixel position
-function pos_y(y) {
-  return CANVAS_HEADER_HEIGHT + GRID_SIZE * y;
+// convert x pixel position to i grid position
+function pos_i(x){
+  return (x - CANVAS_MARGIN) / GRID_SIZE;
+}
+
+// convert j in grid to y pixel position
+function pos_y(j) {
+  return CANVAS_HEADER_HEIGHT + GRID_SIZE * j;
+}
+
+// convert y pixel position to j grid position
+function pos_j(y){
+  return (y - CANVAS_HEADER_HEIGHT) / GRID_SIZE;
 }
 
 // draw header
@@ -282,7 +286,11 @@ function drawBoard() {
           // put a grey ball
           entities[i][j] = Crafty.e("2D, DOM, ball_grey");
           // and place one tooth in front of it
-          Crafty.e("2D, DOM, tooth, tooth_0").place(i, j);
+          Crafty.e("2D, DOM, tooth, tooth_0").attr({
+            x: pos_x(i),
+            y: pos_y(j),
+            z: Z_TEETH, // in front of symbols which are at Z=0
+          });
           break;
         case BOARD_END:
           entities[i][j] = Crafty.e("2D, DOM, ball_green"); // initially the exit is unlocked
@@ -370,7 +378,6 @@ function checkHitSymbols(aToothEntity, destination) {
     } else if (aToothEntity.has("tooth_4")) {
       // this tooth is broken
       aToothEntity.toggleComponent("tooth_4,tooth_5");
-      aToothEntity.setStatus(TOOTH_STATUS.BROKEN);
     }
   } else if (destination.has("toothbrush")) {
     // make symbol disappear, replaced by empty cell
@@ -386,23 +393,17 @@ function checkHitSymbols(aToothEntity, destination) {
       aToothEntity.toggleComponent("tooth_4,tooth_3");
     }
   }
-  // set status to Saved only if the tooth is on a green exit ball, and not broken
-  if (aToothEntity.getStatus() != TOOTH_STATUS.BROKEN) {
-    if (destination.has("ball_green")) {
-      aToothEntity.setStatus(TOOTH_STATUS.SAVED);
-    } else {
-      aToothEntity.setStatus(TOOTH_STATUS.NORMAL);
-    }
-  }
 }
 
 // move one tooth
+// returns true if the tooth has effectively moved, and false if the moveRequest
+// does not move the tooth (because we hit the border, a wall, another tooth...)
 function moveOneTooth(aToothEntity, aMoveRequest) {
-  let newTooth_x = aToothEntity.tooth_x;
-  let newTooth_y = aToothEntity.tooth_y;
+  let oldTooth_x = pos_i(aToothEntity.x);
+  let oldTooth_y = pos_j(aToothEntity.y);
   [newTooth_x, newTooth_y] = moveOneStep(
-    newTooth_x,
-    newTooth_y,
+    oldTooth_x,
+    oldTooth_y,
     aMoveRequest,
     1
   );
@@ -419,13 +420,15 @@ function moveOneTooth(aToothEntity, aMoveRequest) {
       destination = entities[newTooth_x][newTooth_y];
       // validate new position only if we don't enter a wall or another tooth,
       if (!destination.has("wall") && isPositionFree(newTooth_x, newTooth_y)) {
-        aToothEntity.place(newTooth_x, newTooth_y);
+        aToothEntity.x = pos_x(newTooth_x);
+        aToothEntity.y = pos_y(newTooth_y);
 
         // check hit symbols
         checkHitSymbols(aToothEntity, destination);
       }
     }
   }
+  return ( (newTooth_x!=oldTooth_x) && (newTooth_y!=oldTooth_y));
 }
 
 // return array of tooth entities, ordered according to one direction
@@ -435,16 +438,16 @@ function orderedTeeth(aMoveRequest) {
     var result;
     switch (aMoveRequest) {
       case MOVE_REQUEST.LEFT:
-        result = a.tooth_x - b.tooth_x;
+        result = a.x - b.x;
         break;
       case MOVE_REQUEST.RIGHT:
-        result = b.tooth_x - a.tooth_x;
+        result = b.x - a.x;
         break;
       case MOVE_REQUEST.UP:
-        result = a.tooth_y - b.tooth_y;
+        result = a.y - b.y;
         break;
       case MOVE_REQUEST.DOWN:
-        result = b.tooth_y - a.tooth_y;
+        result = b.y - a.y;
         break;
     }
     return result;
@@ -453,13 +456,19 @@ function orderedTeeth(aMoveRequest) {
 }
 
 // move all teeth according to the move request
+// returns true if at least one tooth has effectively moved, and false if the moveRequest
+// does not move any tooth (because we hit the border, a wall, another tooth...)
 function moveAllTeeth(aMoveRequest) {
   // order the teeth according to the move direction: we move first
   // the tooth which is further away in that direction to free up the
   // trail behind it.
-  orderedTeeth(aMoveRequest).forEach((toothEntity) =>
-    moveOneTooth(toothEntity, aMoveRequest)
-  );
+  atLeastOneToothMoved = false;
+  orderedTeeth(aMoveRequest).forEach(function(toothEntity){
+      if (moveOneTooth(toothEntity, aMoveRequest)){
+        atLeastOneToothMoved = true;
+      }
+    });
+  return atLeastOneToothMoved;
 }
 
 // check if position x, y is free, i.e. not ocupied by one tooth
@@ -467,7 +476,7 @@ function isPositionFree(ax, ay) {
   var isFree = true;
   var teethEntities = Crafty("tooth").get();
   for (i = 0; i < teethEntities.length; i++) {
-    if (teethEntities[i].tooth_x == ax && teethEntities[i].tooth_y == ay) {
+    if (pos_i(teethEntities[i].x) == ax && pos_j(teethEntities[i].y) == ay) {
       isFree = false;
       break;
     }
@@ -476,25 +485,22 @@ function isPositionFree(ax, ay) {
 }
 
 function isOneToothBroken() {
-  var numBroken = 0;
-  var teethEntities = Crafty("tooth").get();
-  for (i = 0; i < teethEntities.length; i++) {
-    if (teethEntities[i].getStatus() == TOOTH_STATUS.BROKEN) {
-      numBroken++;
-      break;
-    }
-  }
-  return numBroken > 0;
+  return Crafty("tooth_5").length > 0;
 }
 
+// check if all teeth are clean, and on a green exit ball
 function isAllTeethSaved() {
   var numSaved = 0;
   var teethEntities = Crafty("tooth").get();
-  for (i = 0; i < teethEntities.length; i++) {
-    if (teethEntities[i].getStatus() == TOOTH_STATUS.SAVED) {
-      numSaved++;
+  teethEntities.forEach(function(toothEntity){
+    if (toothEntity.has("tooth_0")) {
+      i = pos_i(toothEntity.x);
+      j = pos_j(toothEntity.y);
+      if (entities[i][j].has("ball_green")){
+        numSaved++;
+      }
     }
-  }
+  })
   return numSaved == teethEntities.length;
 }
 
@@ -626,32 +632,6 @@ Crafty.bind("UpdateFrame", function () {
 
 Crafty.scene("main", function () {
   startTime = new Date().getTime();
-
-  // Component for one tooth
-  Crafty.c("tooth", {
-    required: "2D, DOM",
-    init: function () {
-      this.w = 50;
-      this.h = 50;
-      this.status = TOOTH_STATUS.NORMAL;
-    },
-    place: function (ax, ay) {
-      this.tooth_x = ax;
-      this.tooth_y = ay;
-      this.x = pos_x(ax);
-      this.y = pos_y(ay);
-      this.z = Z_TEETH; // in front of symbols which are at Z=0
-      return this;
-    },
-    setStatus: function (value) {
-      this.status = value;
-      return this;
-    },
-    getStatus: function () {
-      return this.status;
-    },
-  });
-
   drawHeader();
   drawBoard();
   drawFooter();
