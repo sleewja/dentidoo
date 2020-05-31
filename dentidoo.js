@@ -58,6 +58,8 @@ var entities = Create2DArray(GRID_DIMENSION);
 var scoreText;
 var levelText;
 var levelNameText;
+var doActions = []; // list of actions (for undo), each item is one move
+var doAction = {}; // dictionary of action(s) for each entity Id for one move (for undo)
 
 // ***********************************************
 // init Crafty
@@ -126,7 +128,7 @@ function pos_x(i) {
 }
 
 // convert x pixel position to i grid position
-function pos_i(x){
+function pos_i(x) {
   return (x - CANVAS_MARGIN) / GRID_SIZE;
 }
 
@@ -136,7 +138,7 @@ function pos_y(j) {
 }
 
 // convert y pixel position to j grid position
-function pos_j(y){
+function pos_j(y) {
   return (y - CANVAS_HEADER_HEIGHT) / GRID_SIZE;
 }
 
@@ -349,6 +351,17 @@ function hopOnSprings(ax, ay, aMoveRequest) {
   return [ax, ay];
 }
 
+// toggle component, and keep trace of it (for undo)
+function toggleComponentAndRememberIt(aEntity, oldComponent, newComponent) {
+  aEntity.toggleComponent(oldComponent, newComponent);
+  entityId = aEntity.getId().toString();
+  if (!(entityId in doAction)) {
+    doAction[entityId] = {};
+  }
+  doAction[entityId]["oldComponent"] = oldComponent;
+  doAction[entityId]["newComponent"] = newComponent;
+}
+
 // check and manage effects when a tooth hits a symbol at destination
 function checkHitSymbols(aToothEntity, destination) {
   if (
@@ -358,39 +371,39 @@ function checkHitSymbols(aToothEntity, destination) {
   ) {
     // make symbol disappear, replaced by empty cell
     if (destination.has("candy")) {
-      destination.toggleComponent("candy,    ball_grey");
+      toggleComponentAndRememberIt(destination, "candy", "ball_grey");
     }
     if (destination.has("chocolate")) {
-      destination.toggleComponent("chocolate,ball_grey");
+      toggleComponentAndRememberIt(destination, "chocolate", "ball_grey");
     }
     if (destination.has("lollipop")) {
-      destination.toggleComponent("lollipop, ball_grey");
+      toggleComponentAndRememberIt(destination, "lollipop", "ball_grey");
     }
     // one more carie
     if (aToothEntity.has("tooth_0")) {
-      aToothEntity.toggleComponent("tooth_0,tooth_1");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_0", "tooth_1");
     } else if (aToothEntity.has("tooth_1")) {
-      aToothEntity.toggleComponent("tooth_1,tooth_2");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_1", "tooth_2");
     } else if (aToothEntity.has("tooth_2")) {
-      aToothEntity.toggleComponent("tooth_2,tooth_3");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_2", "tooth_3");
     } else if (aToothEntity.has("tooth_3")) {
-      aToothEntity.toggleComponent("tooth_3,tooth_4");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_3", "tooth_4");
     } else if (aToothEntity.has("tooth_4")) {
       // this tooth is broken
-      aToothEntity.toggleComponent("tooth_4,tooth_5");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_4", "tooth_5");
     }
   } else if (destination.has("toothbrush")) {
     // make symbol disappear, replaced by empty cell
-    destination.toggleComponent("toothbrush,ball_grey");
+    toggleComponentAndRememberIt(destination, "toothbrush", "ball_grey");
     // remove one carie
     if (aToothEntity.has("tooth_1")) {
-      aToothEntity.toggleComponent("tooth_1,tooth_0");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_1", "tooth_0");
     } else if (aToothEntity.has("tooth_2")) {
-      aToothEntity.toggleComponent("tooth_2,tooth_1");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_2", "tooth_1");
     } else if (aToothEntity.has("tooth_3")) {
-      aToothEntity.toggleComponent("tooth_3,tooth_2");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_3", "tooth_2");
     } else if (aToothEntity.has("tooth_4")) {
-      aToothEntity.toggleComponent("tooth_4,tooth_3");
+      toggleComponentAndRememberIt(aToothEntity, "tooth_4", "tooth_3");
     }
   }
 }
@@ -399,6 +412,7 @@ function checkHitSymbols(aToothEntity, destination) {
 // returns true if the tooth has effectively moved, and false if the moveRequest
 // does not move the tooth (because we hit the border, a wall, another tooth...)
 function moveOneTooth(aToothEntity, aMoveRequest) {
+  toothMoved = false;
   let oldTooth_x = pos_i(aToothEntity.x);
   let oldTooth_y = pos_j(aToothEntity.y);
   [newTooth_x, newTooth_y] = moveOneStep(
@@ -422,13 +436,19 @@ function moveOneTooth(aToothEntity, aMoveRequest) {
       if (!destination.has("wall") && isPositionFree(newTooth_x, newTooth_y)) {
         aToothEntity.x = pos_x(newTooth_x);
         aToothEntity.y = pos_y(newTooth_y);
+        toothMoved = true;
+        // Save move action (for undo)
+        entityId = aToothEntity.getId().toString();
+        doAction[entityId] = {};
+        doAction[entityId]["old_x"] = oldTooth_x;
+        doAction[entityId]["old_y"] = oldTooth_y;
 
         // check hit symbols
         checkHitSymbols(aToothEntity, destination);
       }
     }
   }
-  return ( (newTooth_x!=oldTooth_x) && (newTooth_y!=oldTooth_y));
+  return toothMoved;
 }
 
 // return array of tooth entities, ordered according to one direction
@@ -455,19 +475,24 @@ function orderedTeeth(aMoveRequest) {
   return teethEntities;
 }
 
-// move all teeth according to the move request
+// move all teeth according to the move request and update exit balls accordingly
 // returns true if at least one tooth has effectively moved, and false if the moveRequest
 // does not move any tooth (because we hit the border, a wall, another tooth...)
 function moveAllTeeth(aMoveRequest) {
+  doAction = {}; // start from scratch again (for undo)
+  atLeastOneToothMoved = false;
   // order the teeth according to the move direction: we move first
   // the tooth which is further away in that direction to free up the
   // trail behind it.
-  atLeastOneToothMoved = false;
-  orderedTeeth(aMoveRequest).forEach(function(toothEntity){
-      if (moveOneTooth(toothEntity, aMoveRequest)){
-        atLeastOneToothMoved = true;
-      }
-    });
+  orderedTeeth(aMoveRequest).forEach(function (toothEntity) {
+    if (moveOneTooth(toothEntity, aMoveRequest)) {
+      atLeastOneToothMoved = true;
+    }
+  });
+  if (atLeastOneToothMoved) {
+    refreshExits(); // update colour of exit balls
+    doActions.push(doAction); // add action in the "undo" list
+  }
   return atLeastOneToothMoved;
 }
 
@@ -492,15 +517,15 @@ function isOneToothBroken() {
 function isAllTeethSaved() {
   var numSaved = 0;
   var teethEntities = Crafty("tooth").get();
-  teethEntities.forEach(function(toothEntity){
+  teethEntities.forEach(function (toothEntity) {
     if (toothEntity.has("tooth_0")) {
       i = pos_i(toothEntity.x);
       j = pos_j(toothEntity.y);
-      if (entities[i][j].has("ball_green")){
+      if (entities[i][j].has("ball_green")) {
         numSaved++;
       }
     }
-  })
+  });
   return numSaved == teethEntities.length;
 }
 
@@ -508,6 +533,48 @@ function isAllTeethClean() {
   var numClean = Crafty("tooth_0").length;
   var numTeeth = Crafty("tooth").length;
   return numClean == numTeeth;
+}
+
+// Update colour of exit balls: green or red
+function refreshExits() {
+  if (isAllTeethClean()) {
+    // turn the exit(s) green, if they aren't yet
+    if (Crafty("ball_red").length != 0) {
+      Crafty("ball_red").each(function () {
+        toggleComponentAndRememberIt(this, "ball_red", "ball_green");
+      });
+    }
+  } else {
+    // turn the exit(s) red, if they aren't yet
+    if (Crafty("ball_green").length != 0) {
+      Crafty("ball_green").each(function () {
+        toggleComponentAndRememberIt(this, "ball_green", "ball_red");
+      });
+    }
+  }
+}
+
+// undo last move
+function undoLastMove() {
+  // move all teeth back where they were
+  // and revert all transformations (for teeth and for symbols)
+  doAction = doActions.pop();
+  for (var entityId in doAction) {
+    entity = Crafty(parseInt(entityId));
+    if ("old_x" in doAction[entityId]) {
+      entity.x = pos_x(doAction[entityId]["old_x"]);
+    }
+    if ("old_y" in doAction[entityId]) {
+      entity.y = pos_y(doAction[entityId]["old_y"]);
+    }
+    if ("oldComponent" in doAction[entityId]) {
+      entity.toggleComponent(
+        doAction[entityId]["newComponent"],
+        doAction[entityId]["oldComponent"]
+      );
+    }
+  }
+  doAction = {}; // Flush the "undo" actions
 }
 
 // ***********************************************
@@ -519,10 +586,13 @@ function isAllTeethClean() {
 // and no diagonal move allowed
 
 Crafty.bind("KeyDown", function (e) {
-  if (DEBUG) {
-    console.log("Key=" + e.key);
-  }
-  if (e.key == Crafty.keys.R) {
+  if (e.key == Crafty.keys.U) {
+    stopped = false;
+    undoLastMove(); // undo
+  } else if (e.key == Crafty.keys.P) {
+    stopped = false;
+    solve(); // solve, see console output
+  } else if (e.key == Crafty.keys.R) {
     stopped = false;
     Crafty.scene("main"); // restart the scene
   } else {
@@ -611,20 +681,6 @@ Crafty.bind("UpdateFrame", function () {
         level++;
       } else {
         level = 0; // restart from first level
-      }
-    } else if (isAllTeethClean()) {
-      // turn the exit(s) green, if they aren't yet
-      if (Crafty("ball_red").length != 0) {
-        Crafty("ball_red").each(function () {
-          this.toggleComponent("ball_red,ball_green");
-        });
-      }
-    } else {
-      // turn the exit(s) red, if they aren't yet
-      if (Crafty("ball_green").length != 0) {
-        Crafty("ball_green").each(function () {
-          this.toggleComponent("ball_green,ball_red");
-        });
       }
     }
   }
