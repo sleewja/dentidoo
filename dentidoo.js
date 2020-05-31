@@ -688,6 +688,7 @@ Crafty.bind("UpdateFrame", function () {
 
 Crafty.scene("main", function () {
   startTime = new Date().getTime();
+  doActions=[]; // flush the undo action list
   drawHeader();
   drawBoard();
   drawFooter();
