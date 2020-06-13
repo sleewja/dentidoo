@@ -21,6 +21,7 @@ var BOARD_CANDY = "c";
 var BOARD_CHOCOLATE = "h";
 var BOARD_LOLLIPOP = "l";
 var BOARD_TOOTHBRUSH = "T";
+var BOARD_GIFT = "g";
 
 var Z_SYMBOLS = 0; // background
 var Z_TEETH = 1; // in front of symbols
@@ -94,6 +95,7 @@ Crafty.sprite(
     wall: [7, 0],
     spring: [0, 1],
     cloud: [1, 1],
+    gift: [2, 1],
   }
 );
 Crafty.sprite(
@@ -140,6 +142,20 @@ function pos_y(j) {
 // convert y pixel position to j grid position
 function pos_j(y) {
   return (y - CANVAS_HEADER_HEIGHT) / GRID_SIZE;
+}
+
+// show a message
+function showMessage(aText){
+  Crafty.e("2D, DOM, Text, Keyboard")
+  .attr({
+    x: CANVAS_WIDTH/2 - 150 + 20,
+    y: 300,
+    w: 260,
+  })
+  .textFont({
+    size: "40px",
+  })
+  .text(aText);
 }
 
 // draw header
@@ -309,6 +325,9 @@ function drawBoard() {
         case BOARD_TOOTHBRUSH:
           entities[i][j] = Crafty.e("2D, DOM, toothbrush");
           break;
+        case BOARD_GIFT:
+            entities[i][j] = Crafty.e("2D, DOM, gift");
+            break;
       }
       entities[i][j].attr({
         x: pos_x(i),
@@ -404,6 +423,13 @@ function checkHitSymbols(aToothEntity, destination) {
       toggleComponentAndRememberIt(aToothEntity, "tooth_3", "tooth_2");
     } else if (aToothEntity.has("tooth_4")) {
       toggleComponentAndRememberIt(aToothEntity, "tooth_4", "tooth_3");
+    }
+  } else if (destination.has("gift")){
+    // make the gift disappear, replaced by a gray ball
+    toggleComponentAndRememberIt(destination, "gift", "ball_grey");
+    // Show the gift message, if provided
+    if ("gift" in levels[level]){
+      showMessage(levels[level].gift);
     }
   }
 }
