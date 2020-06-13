@@ -9,8 +9,25 @@
 // h = chocolate
 // l = lollypop
 // T = toothbrush
+// g = gift
 
 var standardLevels = [
+  {
+    name: "Edition spéciale 14 juin 2020",
+    grid: [
+      "##########",
+      "#..£#...##",
+      "#.#.#.#.##",
+      "#...#...##",
+      "#.###.#£##",
+      "##########",
+      "#£..#...##",
+      "#.#.#.#.##",
+      "#...#..g##",
+      "#S###.#E##",
+    ],
+    gift: "Bonne fête papa!"
+  },
   {
     name: "Un bon début",
     grid: [
