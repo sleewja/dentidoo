@@ -49,6 +49,8 @@ const MOVE_REQUEST = {
   DOWN: "down",
 };
 
+var doShowIntro = true;
+var doBindGlobalEvents = true;
 var level = 0;
 var score = 0;
 var numMoves = 0;
@@ -145,22 +147,22 @@ function pos_j(y) {
 }
 
 // show a message
-function showMessage(aText){
-  Crafty.e("2D, DOM, Text, Keyboard")
-  .attr({
-    x: CANVAS_WIDTH/2 - 150 + 20,
-    y: 300,
-    w: 260,
-  })
-  .textFont({
-    size: "40px",
-  })
-  .text(aText);
+function showMessage(aText) {
+  Crafty.e("2D, Canvas, Text, Keyboard")
+    .attr({
+      x: CANVAS_WIDTH / 2 - 150 + 20,
+      y: 300,
+      w: 260,
+    })
+    .textFont({
+      size: "40px",
+    })
+    .text(aText);
 }
 
 // draw header
 function drawHeader() {
-  scoreText = Crafty.e("2D, DOM, Text, Persists")
+  scoreText = Crafty.e("2D, Canvas, Text, Persists")
     .attr({
       x: CANVAS_WIDTH - 80,
       y: 10,
@@ -174,7 +176,7 @@ function drawHeader() {
     })
     .dynamicTextGeneration(true);
 
-  levelText = Crafty.e("2D, DOM, Text")
+  levelText = Crafty.e("2D, Canvas, Text")
     .attr({
       x: 10,
       y: 10,
@@ -188,7 +190,7 @@ function drawHeader() {
     })
     .dynamicTextGeneration(false);
 
-  levelNameText = Crafty.e("2D, DOM, Text")
+  levelNameText = Crafty.e("2D, Canvas, Text")
     .attr({
       x: 60,
       y: 10,
@@ -205,7 +207,7 @@ function drawHeader() {
 
 // draw footer
 function drawFooter() {
-  var logo = Crafty.e("2D, DOM, Image")
+  var logo = Crafty.e("2D, Canvas, Image")
     .image("logo.png")
     .attr({
       x: CANVAS_WIDTH - 175,
@@ -213,10 +215,10 @@ function drawFooter() {
     });
 
   if (DEBUG) {
-    Crafty.e("2D, DOM, Text")
+    Crafty.e("2D, Canvas, Text")
       .attr({
         x: 0,
-        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 15,
+        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 20,
       })
       .text(function () {
         return "numMoves:" + numMoves;
@@ -225,10 +227,10 @@ function drawFooter() {
       .textColor("#FF0000");
   }
   if (DEBUG && 0) {
-    Crafty.e("2D, DOM, Text")
+    Crafty.e("2D, Canvas, Text")
       .attr({
         x: 100,
-        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 15,
+        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 20,
       })
       .text(function () {
         return "arrowKeysPressed:" + arrowKeysPressed;
@@ -287,47 +289,47 @@ function drawBoard() {
       switch (element) {
         case BOARD_EMPTY:
         default:
-          entities[i][j] = Crafty.e("2D, DOM, ball_grey");
+          entities[i][j] = Crafty.e("2D, Canvas, ball_grey");
           break;
         case BOARD_WALL:
-          entities[i][j] = Crafty.e("2D, DOM, wall");
+          entities[i][j] = Crafty.e("2D, Canvas, wall");
           break;
         case BOARD_SPRING:
-          entities[i][j] = Crafty.e("2D, DOM, spring");
+          entities[i][j] = Crafty.e("2D, Canvas, spring");
           break;
         case BOARD_CLOUD:
-          entities[i][j] = Crafty.e("2D, DOM, cloud").attr({
+          entities[i][j] = Crafty.e("2D, Canvas, cloud").attr({
             z: Z_CLOUD,
           });
           break;
         case BOARD_START:
           // put a grey ball
-          entities[i][j] = Crafty.e("2D, DOM, ball_grey");
+          entities[i][j] = Crafty.e("2D, Canvas, ball_grey");
           // and place one tooth in front of it
-          Crafty.e("2D, DOM, tooth, tooth_0").attr({
+          Crafty.e("2D, Canvas, tooth, tooth_0").attr({
             x: pos_x(i),
             y: pos_y(j),
             z: Z_TEETH, // in front of symbols which are at Z=0
           });
           break;
         case BOARD_END:
-          entities[i][j] = Crafty.e("2D, DOM, ball_green"); // initially the exit is unlocked
+          entities[i][j] = Crafty.e("2D, Canvas, ball_green"); // initially the exit is unlocked
           break;
         case BOARD_CANDY:
-          entities[i][j] = Crafty.e("2D, DOM, candy");
+          entities[i][j] = Crafty.e("2D, Canvas, candy");
           break;
         case BOARD_CHOCOLATE:
-          entities[i][j] = Crafty.e("2D, DOM, chocolate");
+          entities[i][j] = Crafty.e("2D, Canvas, chocolate");
           break;
         case BOARD_LOLLIPOP:
-          entities[i][j] = Crafty.e("2D, DOM, lollipop");
+          entities[i][j] = Crafty.e("2D, Canvas, lollipop");
           break;
         case BOARD_TOOTHBRUSH:
-          entities[i][j] = Crafty.e("2D, DOM, toothbrush");
+          entities[i][j] = Crafty.e("2D, Canvas, toothbrush");
           break;
         case BOARD_GIFT:
-            entities[i][j] = Crafty.e("2D, DOM, gift");
-            break;
+          entities[i][j] = Crafty.e("2D, Canvas, gift");
+          break;
       }
       entities[i][j].attr({
         x: pos_x(i),
@@ -424,11 +426,11 @@ function checkHitSymbols(aToothEntity, destination) {
     } else if (aToothEntity.has("tooth_4")) {
       toggleComponentAndRememberIt(aToothEntity, "tooth_4", "tooth_3");
     }
-  } else if (destination.has("gift")){
+  } else if (destination.has("gift")) {
     // make the gift disappear, replaced by a gray ball
     toggleComponentAndRememberIt(destination, "gift", "ball_grey");
     // Show the gift message, if provided
-    if ("gift" in levels[level]){
+    if ("gift" in levels[level]) {
       showMessage(levels[level].gift);
     }
   }
@@ -607,21 +609,61 @@ function undoLastMove() {
 // game logic
 // ***********************************************
 
-// global keyboard events
-// one-direction control (one move at a time, needs key up before next movee,
-// and no diagonal move allowed
+function bindGlobalEvents() {
+  // global keyboard events
+  // one-direction control (one move at a time, needs key up before next movee,
+  // and no diagonal move allowed
 
-Crafty.bind("KeyDown", function (e) {
-  if (e.key == Crafty.keys.U) {
-    stopped = false;
-    undoLastMove(); // undo
-  } else if (e.key == Crafty.keys.P) {
-    stopped = false;
-    solve(); // solve, see console output
-  } else if (e.key == Crafty.keys.R) {
-    stopped = false;
-    Crafty.scene("main"); // restart the scene
-  } else {
+  Crafty.bind("KeyDown", function (e) {
+    if (e.key == Crafty.keys.U) {
+      stopped = false;
+      undoLastMove(); // undo
+    } else if (e.key == Crafty.keys.P) {
+      stopped = false;
+      solve(); // solve, see console output
+    } else if (e.key == Crafty.keys.R) {
+      stopped = false;
+      Crafty.scene("main"); // restart the scene
+    } else {
+      if (
+        e.key == Crafty.keys.LEFT_ARROW ||
+        e.key == Crafty.keys.RIGHT_ARROW ||
+        e.key == Crafty.keys.UP_ARROW ||
+        e.key == Crafty.keys.DOWN_ARROW ||
+        e.key == Crafty.keys.S ||
+        e.key == Crafty.keys.F ||
+        e.key == Crafty.keys.E ||
+        e.key == Crafty.keys.D
+      ) {
+        arrowKeysPressed++;
+      }
+      // forbid diagonal moves with two arrows pressed
+      if (!stopped && arrowKeysPressed == 1) {
+        // By default no move request
+        moveRequest = MOVE_REQUEST.NONE;
+        switch (e.key) {
+          case Crafty.keys.LEFT_ARROW:
+          case Crafty.keys.S:
+            moveRequest = MOVE_REQUEST.LEFT;
+            break;
+          case Crafty.keys.RIGHT_ARROW:
+          case Crafty.keys.F:
+            moveRequest = MOVE_REQUEST.RIGHT;
+            break;
+          case Crafty.keys.UP_ARROW:
+          case Crafty.keys.E:
+            moveRequest = MOVE_REQUEST.UP;
+            break;
+          case Crafty.keys.DOWN_ARROW:
+          case Crafty.keys.D:
+            moveRequest = MOVE_REQUEST.DOWN;
+            break;
+        }
+      }
+    }
+  });
+
+  Crafty.bind("KeyUp", function (e) {
     if (
       e.key == Crafty.keys.LEFT_ARROW ||
       e.key == Crafty.keys.RIGHT_ARROW ||
@@ -632,90 +674,79 @@ Crafty.bind("KeyDown", function (e) {
       e.key == Crafty.keys.E ||
       e.key == Crafty.keys.D
     ) {
-      arrowKeysPressed++;
+      if (arrowKeysPressed>0){
+        arrowKeysPressed--;
+      }
     }
-    // forbid diagonal moves with two arrows pressed
-    if (!stopped && arrowKeysPressed == 1) {
-      // By default no move request
+  });
+
+  Crafty.bind("UpdateFrame", function () {
+    // If there is a move request: move all teeth
+    // Then check:
+    // - is one tooth game over? if yes replay this level
+    // - are all teeth saved?    if yes go to next level
+    if (moveRequest != MOVE_REQUEST.NONE) {
+      numMoves++;
+      moveAllTeeth(moveRequest);
+      // consume the move request
       moveRequest = MOVE_REQUEST.NONE;
-      switch (e.key) {
-        case Crafty.keys.LEFT_ARROW:
-        case Crafty.keys.S:
-          moveRequest = MOVE_REQUEST.LEFT;
-          break;
-        case Crafty.keys.RIGHT_ARROW:
-        case Crafty.keys.F:
-          moveRequest = MOVE_REQUEST.RIGHT;
-          break;
-        case Crafty.keys.UP_ARROW:
-        case Crafty.keys.E:
-          moveRequest = MOVE_REQUEST.UP;
-          break;
-        case Crafty.keys.DOWN_ARROW:
-        case Crafty.keys.D:
-          moveRequest = MOVE_REQUEST.DOWN;
-          break;
+      if (isOneToothBroken()) {
+        // game over
+        levelNameText.text("Ouille! (appuie sur R ou ↷)");
+        // 'r' instead of SPACE because SPACE submits inputs in forms on the same HTML page
+        levelNameText.textColor("red");
+        stopped = true;
+        // score penalty
+        score -= SCORE_INCREMENT;
+      } else if (isAllTeethSaved()) {
+        // User wins!
+        levelNameText.text("Bravo! (appuie sur R ou ↷)");
+        levelNameText.textColor("green");
+        stopped = true;
+        // increase score
+        endTime = new Date().getTime(); // milliseconds
+        score += Math.round(
+          (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
+        );
+        if (level < levels.length - 1) {
+          level++;
+        } else {
+          level = 0; // restart from first level
+        }
       }
     }
-  }
-});
+  });
+}
 
-Crafty.bind("KeyUp", function (e) {
-  if (
-    e.key == Crafty.keys.LEFT_ARROW ||
-    e.key == Crafty.keys.RIGHT_ARROW ||
-    e.key == Crafty.keys.UP_ARROW ||
-    e.key == Crafty.keys.DOWN_ARROW ||
-    e.key == Crafty.keys.S ||
-    e.key == Crafty.keys.F ||
-    e.key == Crafty.keys.E ||
-    e.key == Crafty.keys.D
-  ) {
-    arrowKeysPressed--;
-  }
-});
-
-Crafty.bind("UpdateFrame", function () {
-  // If there is a move request: move all teeth
-  // Then check:
-  // - is one tooth game over? if yes replay this level
-  // - are all teeth saved?    if yes go to next level
-  if (moveRequest != MOVE_REQUEST.NONE) {
-    numMoves++;
-    moveAllTeeth(moveRequest);
-    // consume the move request
-    moveRequest = MOVE_REQUEST.NONE;
-    if (isOneToothBroken()) {
-      // game over
-      levelNameText.text("!! Try again (press 'r')");
-      // 'r' instead of SPACE because SPACE submits inputs in forms on the same HTML page
-      levelNameText.textColor("red");
-      stopped = true;
-      // score penalty
-      score -= SCORE_INCREMENT;
-    } else if (isAllTeethSaved()) {
-      // User wins!
-      levelNameText.text("Yeah!! (press 'r')");
-      levelNameText.textColor("green");
-      stopped = true;
-      // increase score
-      endTime = new Date().getTime(); // milliseconds
-      score += Math.round(
-        (SCORE_INCREMENT * SCORE_NOMINAL_TIME) / (endTime - startTime)
-      );
-      if (level < levels.length - 1) {
-        level++;
-      } else {
-        level = 0; // restart from first level
-      }
-    }
-  }
-});
-
+// "main" scene is the entry point from index.html
 Crafty.scene("main", function () {
-  startTime = new Date().getTime();
-  doActions=[]; // flush the undo action list
-  drawHeader();
-  drawBoard();
-  drawFooter();
+  if (doShowIntro){
+    doShowIntro = false;
+    Crafty.scene("intro");
+  } else {
+    if (doBindGlobalEvents){
+      doBindGlobalEvents = false;
+      bindGlobalEvents();
+    }
+    startTime = new Date().getTime();
+    doActions = []; // flush the undo action list
+    drawHeader();
+    drawBoard();
+    drawFooter();
+  }
+});
+
+Crafty.scene("intro", function () {
+  Crafty.e("2D, Canvas, Image, Mouse, Keyboard")
+    .image("help.png")
+    .bind("Exit", function() {
+      this.destroy();
+      Crafty.scene("main");
+    })
+    .bind("Click", function () {
+      this.trigger("Exit");
+    })
+    .bind("KeyDown", function () {
+      this.trigger("Exit");
+    });
 });
