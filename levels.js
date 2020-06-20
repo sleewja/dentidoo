@@ -12,7 +12,7 @@
 // g = gift
 
 var standardLevels = [
-  {
+/*  {
     name: "Edition spéciale 14 juin 2020",
     grid: [
       "##########",
@@ -27,7 +27,7 @@ var standardLevels = [
       "#S###.#E##",
     ],
     gift: "Bonne fête papa!"
-  },
+  },*/
   {
     name: "Un bon début",
     grid: [
