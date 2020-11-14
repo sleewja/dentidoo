@@ -28,11 +28,11 @@ var Z_TEETH = 1; // in front of symbols
 var Z_CLOUD = 2; // in front of teeth
 var GRID_SIZE = 50; // size in pixels
 var GRID_DIMENSION = 10; // 10 * 10
-var CANVAS_MARGIN = 0; // left, right, bottom margin
+var CANVAS_MARGIN = 10; // left, right, bottom margin
 var CANVAS_HEADER_HEIGHT = 60;
 var CANVAS_FOOTER_HEIGTH = 160; // for logo and debug info and buttons
 var CANVAS_WIDTH = CANVAS_MARGIN + GRID_SIZE * GRID_DIMENSION + CANVAS_MARGIN;
-var CANVAS_HEIGTH =
+var CANVAS_HEIGHT =
   CANVAS_HEADER_HEIGHT +
   GRID_SIZE * GRID_DIMENSION +
   CANVAS_MARGIN +
@@ -67,7 +67,8 @@ var doAction = {}; // dictionary of action(s) for each entity Id for one move (f
 // ***********************************************
 // init Crafty
 // ***********************************************
-Crafty.init(CANVAS_WIDTH, CANVAS_HEIGTH, document.getElementById("dentidoo"));
+var viewportScale = calculateScalingFactor(available_width, available_height);
+Crafty.init(CANVAS_WIDTH * viewportScale, CANVAS_HEIGHT * viewportScale); // uses by default 'cr-stage' div
 
 Crafty.sprite(
   50, // tile
@@ -116,6 +117,22 @@ Crafty.sprite(
 // ***********************************************
 // functions
 // ***********************************************
+
+// calculate viewport scaling factor
+function calculateScalingFactor(availableWidth, availableHeight){
+  stageWidth = CANVAS_WIDTH;
+  stageHeight = CANVAS_HEIGHT;
+  stageAspectRatio = stageWidth/stageHeight;
+  availableAspectRatio = availableWidth/availableHeight;
+  if (stageAspectRatio < availableAspectRatio){
+    // fit on height: the stage will occupy the full window's height
+    scaleFactor = availableHeight / stageHeight;
+  } else {
+    // fit on width: the stage will occupy the full window's width
+    scaleFactor = availableWidth / stageWidth;
+  }
+  return scaleFactor;
+}
 
 // create 2D array
 function Create2DArray(rows) {
@@ -178,7 +195,7 @@ function drawHeader() {
 
   levelText = Crafty.e("2D, Canvas, Text")
     .attr({
-      x: 10,
+      x: CANVAS_MARGIN + 10,
       y: 10,
       w: 50,
     })
@@ -192,7 +209,7 @@ function drawHeader() {
 
   levelNameText = Crafty.e("2D, Canvas, Text")
     .attr({
-      x: 60,
+      x: CANVAS_MARGIN + 60,
       y: 10,
       w: 400,
     })
@@ -211,14 +228,14 @@ function drawFooter() {
     .image("logo.png")
     .attr({
       x: CANVAS_WIDTH - 175,
-      y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH,
+      y: CANVAS_HEIGHT - CANVAS_FOOTER_HEIGTH,
     });
 
   if (DEBUG) {
     Crafty.e("2D, Canvas, Text")
       .attr({
-        x: 0,
-        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 20,
+        x: CANVAS_MARGIN,
+        y: CANVAS_HEIGHT - CANVAS_FOOTER_HEIGTH + 20,
       })
       .text(function () {
         return "numMoves:" + numMoves;
@@ -230,7 +247,7 @@ function drawFooter() {
     Crafty.e("2D, Canvas, Text")
       .attr({
         x: 100,
-        y: CANVAS_HEIGTH - CANVAS_FOOTER_HEIGTH + 20,
+        y: CANVAS_HEIGHT - CANVAS_FOOTER_HEIGTH + 20,
       })
       .text(function () {
         return "arrowKeysPressed:" + arrowKeysPressed;
@@ -241,37 +258,37 @@ function drawFooter() {
 
   // buttons
   buttons_h = 100;
-  buttons_y = CANVAS_HEIGTH - buttons_h;
+  buttons_y = CANVAS_HEIGHT - buttons_h;
   Crafty.e("2D, Canvas, Mouse, button_left")
-    .attr({ x: 0, y: buttons_y })
+    .attr({ x: CANVAS_MARGIN, y: buttons_y })
     .bind("Click", function (MouseEvent) {
       if (!stopped) {
         moveRequest = MOVE_REQUEST.LEFT;
       }
     });
   Crafty.e("2D, Canvas, Mouse, button_up")
-    .attr({ x: buttons_h, y: buttons_y })
+    .attr({ x: CANVAS_MARGIN + buttons_h, y: buttons_y })
     .bind("Click", function (MouseEvent) {
       if (!stopped) {
         moveRequest = MOVE_REQUEST.UP;
       }
     });
   Crafty.e("2D, Canvas, Mouse, button_down")
-    .attr({ x: buttons_h * 2, y: buttons_y })
+    .attr({ x: CANVAS_MARGIN + buttons_h * 2, y: buttons_y })
     .bind("Click", function (MouseEvent) {
       if (!stopped) {
         moveRequest = MOVE_REQUEST.DOWN;
       }
     });
   Crafty.e("2D, Canvas, Mouse, button_right")
-    .attr({ x: buttons_h * 3, y: buttons_y })
+    .attr({ x: CANVAS_MARGIN + buttons_h * 3, y: buttons_y })
     .bind("Click", function (MouseEvent) {
       if (!stopped) {
         moveRequest = MOVE_REQUEST.RIGHT;
       }
     });
   Crafty.e("2D, Canvas, Mouse, button_restart")
-    .attr({ x: buttons_h * 4, y: buttons_y })
+    .attr({ x: CANVAS_MARGIN + buttons_h * 4, y: buttons_y })
     .bind("Click", function (MouseEvent) {
       // restart this level; (same as keyboard key R)
       stopped = false;
@@ -720,6 +737,7 @@ function bindGlobalEvents() {
 
 // "main" scene is the entry point from index.html
 Crafty.scene("main", function () {
+  Crafty.viewport.scale(viewportScale);
   if (doShowIntro){
     doShowIntro = false;
     Crafty.scene("intro");
@@ -737,6 +755,7 @@ Crafty.scene("main", function () {
 });
 
 Crafty.scene("intro", function () {
+  Crafty.viewport.scale(viewportScale);
   Crafty.e("2D, Canvas, Image, Mouse, Keyboard")
     .image("help.png")
     .bind("Exit", function() {

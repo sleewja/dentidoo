@@ -3,9 +3,12 @@
     <meta charset="utf-8" />
     <title>dentidoo</title>
     <link rel="icon" type="image/png" href="favicon.ico" />
+    <style>
+      body, html { margin:0; padding: 0; }
+    </style>
   </head>
   <body>
-    <div id="dentidoo"></div>
+    <div id="cr-stage"></div>
     <script type="text/javascript" src="crafty-min.js">
       comment="From https://github.com/craftyjs/Crafty/releases/download/0.9.0/crafty-min.js"
     </script>
@@ -13,8 +16,22 @@
     <script type="text/javascript">
       levels = standardLevels; // by default take standard levels
     </script>
+
+    <script type="text/javascript">
+      // available dimensions, will be used in dentidoo.js to fit grid to window dimensions
+      var available_width = document.body.clientWidth;
+      var available_height = document.body.clientHeight*0.9; // leave 10% for custom level buttons
+    </script>
+
     <script type="text/javascript" src="solver.js" charset="utf-8"></script>
     <script type="text/javascript" src="dentidoo.js" charset="utf-8"></script>
+
+    <script type="text/javascript">
+      // resize the div, mmm did not work well
+      /*craftyStageDiv = document.getElementById("cr-stage");
+      craftyStageDiv.style['transform']='scale(0.5)';
+      craftyStageDiv.style['height'] = '200px';*/
+    </script>
 
     <!-- Code insipred from https://stackoverflow.com/questions/7346563/loading-local-json-file  -->
     <p></p>
@@ -32,6 +49,7 @@
     />
 
     <script type="text/javascript">
+      
       function onChangeFileSelector() {
         if (document.getElementById("useCustomLevels").checked) {
           loadFile();
