@@ -134,6 +134,14 @@ function calculateScalingFactor(availableWidth, availableHeight){
   return scaleFactor;
 }
 
+// resize and scale the viewport upon browser window resize
+function resizeViewport(){
+  viewportScale = calculateScalingFactor(available_width, available_height);
+  Crafty.viewport.width = CANVAS_WIDTH * viewportScale;
+  Crafty.viewport.height = CANVAS_HEIGHT * viewportScale;
+  Crafty.viewport.scale(viewportScale);
+}
+
 // create 2D array
 function Create2DArray(rows) {
   var arr = [];
